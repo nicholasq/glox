@@ -27,16 +27,6 @@ var keywords = map[string]TokenType{
 	"while":  WHILE,
 }
 
-func MakeScanner(source string) Scanner {
-	return Scanner{
-		Source:  source,
-		Tokens:  []Token{},
-		Start:   0,
-		Current: 0,
-		Line:    1,
-	}
-}
-
 func (s *Scanner) ScanTokens() []Token {
 	// Begin scanning the Source at most 2 characters at a time.
 	for !s.isAtEnd() {
@@ -81,31 +71,31 @@ func (s *Scanner) scanToken() {
 	case '*':
 		s.addToken(STAR)
 	case '!':
-		if s.match('=') {
+		if s.nextRuneMatches('=') {
 			s.addToken(BANG_EQUAL)
 		} else {
 			s.addToken(BANG)
 		}
 	case '=':
-		if s.match('=') {
+		if s.nextRuneMatches('=') {
 			s.addToken(EQUAL_EQUAL)
 		} else {
 			s.addToken(EQUAL)
 		}
 	case '<':
-		if s.match('=') {
+		if s.nextRuneMatches('=') {
 			s.addToken(LESS_EQUAL)
 		} else {
 			s.addToken(LESS)
 		}
 	case '>':
-		if s.match('=') {
+		if s.nextRuneMatches('=') {
 			s.addToken(GREATER_EQUAL)
 		} else {
 			s.addToken(GREATER)
 		}
 	case '/':
-		if s.match('/') {
+		if s.nextRuneMatches('/') {
 			// A comment goes until the end of the Line.
 			for s.peek() != '\n' && !s.isAtEnd() {
 				s.getRuneAndAdvance()
@@ -171,14 +161,14 @@ func (s *Scanner) string() {
 		report(s.Line, "", "Unterminated string.")
 		return
 	}
-	// The closing ".
+	// Consumes the closing '"'.
 	s.getRuneAndAdvance()
 	// Trim the surrounding quotes.
 	value := s.Source[s.Start+1 : s.Current-1]
 	s.addTokenLiteral(STRING, value)
 }
 
-func (s *Scanner) match(char rune) bool {
+func (s *Scanner) nextRuneMatches(char rune) bool {
 	if s.isAtEnd() {
 		return false
 	}
@@ -227,7 +217,7 @@ func (s *Scanner) addToken(tokenType TokenType) {
 	s.addTokenLiteral(tokenType, nil)
 }
 
-func (s *Scanner) addTokenLiteral(tokenType TokenType, literal interface{}) {
+func (s *Scanner) addTokenLiteral(tokenType TokenType, literal any) {
 	text := s.Source[s.Start:s.Current]
 	s.Tokens = append(s.Tokens, Token{TokenType: tokenType, Lexeme: text, Literal: literal, Line: s.Line})
 }

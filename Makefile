@@ -4,4 +4,4 @@ format:
 
 .PHONY: build
 build:
-	@go build -o glox glox.go
+	@go build

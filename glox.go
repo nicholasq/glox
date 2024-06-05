@@ -21,6 +21,7 @@ func main() {
 	} else if len(args) == 2 {
 		runFile(args[1])
 	} else {
+		//TestPrinter()
 		runPrompt()
 	}
 }
