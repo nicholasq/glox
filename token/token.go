@@ -1,4 +1,4 @@
-package main
+package token
 
 import "fmt"
 
@@ -106,5 +106,24 @@ type Token struct {
 
 func (t Token) String() string {
 	tokenName := tokenNames[t.TokenType]
-	return fmt.Sprintf("Token{ %s, %v, %v }", tokenName, t.Lexeme, t.Literal)
+	return fmt.Sprintf("Token{ TokenType: %s, Lexeme: %s, Literal: %v, Line: %d }", tokenName, t.Lexeme, t.Literal, t.Line)
+}
+
+var Keywords = map[string]TokenType{
+	"and":    AND,
+	"class":  CLASS,
+	"else":   ELSE,
+	"false":  FALSE,
+	"for":    FOR,
+	"fun":    FUN,
+	"if":     IF,
+	"nil":    NIL,
+	"or":     OR,
+	"print":  PRINT,
+	"return": RETURN,
+	"super":  SUPER,
+	"this":   THIS,
+	"true":   TRUE,
+	"var":    VAR,
+	"while":  WHILE,
 }

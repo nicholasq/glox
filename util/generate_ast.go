@@ -1,4 +1,4 @@
-package main
+package util
 
 import (
 	"bufio"
@@ -16,15 +16,14 @@ type ExprType struct {
 
 func main() {
 	exprTypes := exprBuilder([]string{
-		"Binary     :  left Expr, operator Token, right Expr",
-		"Grouping   :  expression Expr",
-		"Literal    :  value interface{}",
-		"Unary      :  operator Token, right Expr",
+		"Expression :  expression Expr",
+		"Print      :  expression Expr",
+		"Var        :  Token name, Expr initializer",
 	})
 
-	defineAst("./", "Expr", exprTypes)
+	defineAst("./", "Stmt", exprTypes)
 
-	fmtCmd := exec.Command("make", "format")
+	fmtCmd := exec.Command("go", "fmt")
 
 	_, err := fmtCmd.CombinedOutput()
 	if err != nil {

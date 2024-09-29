@@ -1,33 +1,31 @@
-package main
+package scanner
+
+import (
+	"strconv"
+
+	"github.com/nicholasq/glox/error"
+	"github.com/nicholasq/glox/token"
+)
 
 type Scanner struct {
 	Source  string
-	Tokens  []Token
+	Tokens  []token.Token
 	Start   uint
 	Current uint
 	Line    uint
 }
 
-var keywords = map[string]TokenType{
-	"and":    AND,
-	"class":  CLASS,
-	"else":   ELSE,
-	"false":  FALSE,
-	"for":    FOR,
-	"fun":    FUN,
-	"if":     IF,
-	"nil":    NIL,
-	"or":     OR,
-	"print":  PRINT,
-	"return": RETURN,
-	"super":  SUPER,
-	"this":   THIS,
-	"true":   TRUE,
-	"var":    VAR,
-	"while":  WHILE,
+func New(source string) Scanner {
+	return Scanner{
+		Source:  source,
+		Tokens:  []token.Token{},
+		Start:   0,
+		Current: 0,
+		Line:    1,
+	}
 }
 
-func (s *Scanner) ScanTokens() []Token {
+func (s *Scanner) ScanTokens() []token.Token {
 	// Begin scanning the Source at most 2 characters at a time.
 	for !s.isAtEnd() {
 		// We are at the beginning of the next lexeme.
@@ -36,7 +34,7 @@ func (s *Scanner) ScanTokens() []Token {
 	}
 	// We are done scanning the Source.
 	// Apply the EOF token.
-	s.Tokens = append(s.Tokens, Token{TokenType: EOF, Lexeme: "", Literal: nil, Line: s.Line})
+	s.Tokens = append(s.Tokens, token.Token{TokenType: token.EOF, Lexeme: "", Literal: nil, Line: s.Line})
 	return s.Tokens
 }
 
@@ -51,48 +49,48 @@ func (s *Scanner) scanToken() {
 	c := s.getRuneAndAdvance()
 	switch c {
 	case '(':
-		s.addToken(LEFT_PAREN)
+		s.addToken(token.LEFT_PAREN)
 	case ')':
-		s.addToken(RIGHT_PAREN)
+		s.addToken(token.RIGHT_PAREN)
 	case '{':
-		s.addToken(LEFT_BRACE)
+		s.addToken(token.LEFT_BRACE)
 	case '}':
-		s.addToken(RIGHT_BRACE)
+		s.addToken(token.RIGHT_BRACE)
 	case ',':
-		s.addToken(COMMA)
+		s.addToken(token.COMMA)
 	case '.':
-		s.addToken(DOT)
+		s.addToken(token.DOT)
 	case '-':
-		s.addToken(MINUS)
+		s.addToken(token.MINUS)
 	case '+':
-		s.addToken(PLUS)
+		s.addToken(token.PLUS)
 	case ';':
-		s.addToken(SEMICOLON)
+		s.addToken(token.SEMICOLON)
 	case '*':
-		s.addToken(STAR)
+		s.addToken(token.STAR)
 	case '!':
 		if s.nextRuneMatches('=') {
-			s.addToken(BANG_EQUAL)
+			s.addToken(token.BANG_EQUAL)
 		} else {
-			s.addToken(BANG)
+			s.addToken(token.BANG)
 		}
 	case '=':
 		if s.nextRuneMatches('=') {
-			s.addToken(EQUAL_EQUAL)
+			s.addToken(token.EQUAL_EQUAL)
 		} else {
-			s.addToken(EQUAL)
+			s.addToken(token.EQUAL)
 		}
 	case '<':
 		if s.nextRuneMatches('=') {
-			s.addToken(LESS_EQUAL)
+			s.addToken(token.LESS_EQUAL)
 		} else {
-			s.addToken(LESS)
+			s.addToken(token.LESS)
 		}
 	case '>':
 		if s.nextRuneMatches('=') {
-			s.addToken(GREATER_EQUAL)
+			s.addToken(token.GREATER_EQUAL)
 		} else {
-			s.addToken(GREATER)
+			s.addToken(token.GREATER)
 		}
 	case '/':
 		if s.nextRuneMatches('/') {
@@ -101,7 +99,7 @@ func (s *Scanner) scanToken() {
 				s.getRuneAndAdvance()
 			}
 		} else {
-			s.addToken(SLASH)
+			s.addToken(token.SLASH)
 		}
 	case ' ', '\r', '\t':
 		break
@@ -117,7 +115,7 @@ func (s *Scanner) scanToken() {
 		} else if s.isAlpha(c) {
 			s.identifier()
 		} else {
-			report(s.Line, "", "Unexpected character.")
+			error.Report(s.Line, "", "Unexpected character.")
 		}
 	}
 }
@@ -127,9 +125,9 @@ func (s *Scanner) identifier() {
 		s.getRuneAndAdvance()
 	}
 	text := s.Source[s.Start:s.Current]
-	tokenType, ok := keywords[text]
+	tokenType, ok := token.Keywords[text]
 	if !ok {
-		tokenType = IDENTIFIER
+		tokenType = token.IDENTIFIER
 	}
 	s.addToken(tokenType)
 }
@@ -146,7 +144,12 @@ func (s *Scanner) number() {
 			s.getRuneAndAdvance()
 		}
 	}
-	s.addTokenLiteral(NUMBER, s.Source[s.Start:s.Current])
+	str := s.Source[s.Start:s.Current]
+	f, err := strconv.ParseFloat(str, 64)
+	if err != nil {
+		panic(err) // todo add better error handling
+	}
+	s.addTokenLiteral(token.NUMBER, f)
 }
 
 func (s *Scanner) string() {
@@ -158,14 +161,14 @@ func (s *Scanner) string() {
 	}
 	// Unterminated string.
 	if s.isAtEnd() {
-		report(s.Line, "", "Unterminated string.")
+		error.Report(s.Line, "", "Unterminated string.")
 		return
 	}
 	// Consumes the closing '"'.
 	s.getRuneAndAdvance()
 	// Trim the surrounding quotes.
 	value := s.Source[s.Start+1 : s.Current-1]
-	s.addTokenLiteral(STRING, value)
+	s.addTokenLiteral(token.STRING, value)
 }
 
 func (s *Scanner) nextRuneMatches(char rune) bool {
@@ -213,11 +216,11 @@ func (s *Scanner) getRuneAndAdvance() rune {
 	return curr
 }
 
-func (s *Scanner) addToken(tokenType TokenType) {
+func (s *Scanner) addToken(tokenType token.TokenType) {
 	s.addTokenLiteral(tokenType, nil)
 }
 
-func (s *Scanner) addTokenLiteral(tokenType TokenType, literal any) {
+func (s *Scanner) addTokenLiteral(tokenType token.TokenType, literal any) {
 	text := s.Source[s.Start:s.Current]
-	s.Tokens = append(s.Tokens, Token{TokenType: tokenType, Lexeme: text, Literal: literal, Line: s.Line})
+	s.Tokens = append(s.Tokens, token.Token{TokenType: tokenType, Lexeme: text, Literal: literal, Line: s.Line})
 }
