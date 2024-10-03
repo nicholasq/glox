@@ -11,24 +11,24 @@ type Parser struct {
 	current int
 }
 
-func NewParser(tokens *[]token.Token) *Parser {
+func New(tokens []token.Token) *Parser {
 	return &Parser{
-		tokens:  *tokens,
+		tokens:  tokens,
 		current: 0,
 	}
 }
 
-func (p *Parser) Parse() (*[]ast.Stmt, error) {
+func (p *Parser) Parse() ([]ast.Stmt, error) {
 	var stmts []ast.Stmt
 	for !p.isAtEnd() {
 		stmts = append(stmts, p.declaration())
 	}
-	return &stmts, nil
+	return stmts, nil
 }
 
 func (p *Parser) declaration() ast.Stmt {
 	//todo need to catch errors and call p.synchronize in the 'catch' block
-	if p.match(token.VAR) {
+	if p.nextTokensMatchAny(token.VAR) {
 		return p.varDeclaration()
 	}
 	return p.statement()
@@ -39,7 +39,7 @@ func (p *Parser) varDeclaration() ast.Stmt {
 
 	var initializer ast.Expr = nil
 
-	if p.match(token.EQUAL) {
+	if p.nextTokensMatchAny(token.EQUAL) {
 		initializer = p.expression()
 	}
 	p.consume(token.SEMICOLON, "Expect ';' after variable declaration.")
@@ -47,7 +47,7 @@ func (p *Parser) varDeclaration() ast.Stmt {
 }
 
 func (p *Parser) statement() ast.Stmt {
-	if p.match(token.PRINT) {
+	if p.nextTokensMatchAny(token.PRINT) {
 		stmt := new(ast.PrintStmt)
 		*stmt = p.printStatement()
 		return stmt
@@ -103,7 +103,7 @@ func (p *Parser) expression() ast.Expr {
 // Returns the parsed expression.
 func (p *Parser) equality() ast.Expr {
 	expr := p.comparison()
-	for p.match(token.BANG_EQUAL, token.EQUAL_EQUAL) {
+	for p.nextTokensMatchAny(token.BANG_EQUAL, token.EQUAL_EQUAL) {
 		operator := p.previous()
 		right := p.comparison()
 		expr = &ast.Binary{Left: expr, Operator: operator, Right: right}
@@ -118,7 +118,7 @@ func (p *Parser) equality() ast.Expr {
 // Returns the parsed expression.
 func (p *Parser) comparison() ast.Expr {
 	expr := p.term()
-	for p.match(token.GREATER, token.GREATER_EQUAL, token.LESS, token.LESS_EQUAL) {
+	for p.nextTokensMatchAny(token.GREATER, token.GREATER_EQUAL, token.LESS, token.LESS_EQUAL) {
 		operator := p.previous()
 		term := p.term()
 		expr = &ast.Binary{Left: expr, Operator: operator, Right: term}
@@ -132,7 +132,7 @@ func (p *Parser) comparison() ast.Expr {
 // Returns the parsed term expression.
 func (p *Parser) term() ast.Expr {
 	expr := p.factor()
-	for p.match(token.MINUS, token.PLUS) {
+	for p.nextTokensMatchAny(token.MINUS, token.PLUS) {
 		operator := p.previous()
 		factor := p.factor()
 		expr = &ast.Binary{Left: expr, Operator: operator, Right: factor}
@@ -146,7 +146,7 @@ func (p *Parser) term() ast.Expr {
 // Returns the parsed factor expression.
 func (p *Parser) factor() ast.Expr {
 	expr := p.unary()
-	for p.match(token.SLASH, token.STAR) {
+	for p.nextTokensMatchAny(token.SLASH, token.STAR) {
 		operator := p.previous()
 		factor := p.unary()
 		expr = &ast.Binary{Left: expr, Operator: operator, Right: factor}
@@ -160,7 +160,7 @@ func (p *Parser) factor() ast.Expr {
 // Otherwise, it calls primary method to parse the primary expression.
 // Returns the parsed unary expression.
 func (p *Parser) unary() ast.Expr {
-	if p.match(token.BANG, token.MINUS) {
+	if p.nextTokensMatchAny(token.BANG, token.MINUS) {
 		operator := p.previous()
 		right := p.unary()
 		return &ast.Unary{Operator: operator, Right: right}
@@ -169,22 +169,22 @@ func (p *Parser) unary() ast.Expr {
 }
 
 func (p *Parser) primary() ast.Expr {
-	if p.match(token.FALSE) {
+	if p.nextTokensMatchAny(token.FALSE) {
 		return &ast.Literal{Value: false}
 	}
-	if p.match(token.TRUE) {
+	if p.nextTokensMatchAny(token.TRUE) {
 		return &ast.Literal{Value: true}
 	}
-	if p.match(token.NIL) {
+	if p.nextTokensMatchAny(token.NIL) {
 		return &ast.Literal{Value: nil}
 	}
-	if p.match(token.NUMBER, token.STRING) {
+	if p.nextTokensMatchAny(token.NUMBER, token.STRING) {
 		return &ast.Literal{Value: p.previous().Literal}
 	}
-	if p.match(token.IDENTIFIER) {
+	if p.nextTokensMatchAny(token.IDENTIFIER) {
 		return &ast.Variable{Name: p.previous()}
 	}
-	if p.match(token.LEFT_PAREN) {
+	if p.nextTokensMatchAny(token.LEFT_PAREN) {
 		expr := p.expression()
 		p.consume(token.RIGHT_PAREN, "Expect ')' after expression.")
 		return &ast.Grouping{Expression: expr}
@@ -201,16 +201,16 @@ func (p *Parser) logError(token token.Token, message string) {
 }
 
 func (p *Parser) consume(tokenType token.TokenType, message string) token.Token {
-	if p.check(tokenType) {
+	if p.currentTokenMatches(tokenType) {
 		return p.advance()
 	}
 	p.logError(p.peek(), message)
 	panic("Parse error")
 }
 
-func (p *Parser) match(tokenType ...token.TokenType) bool {
+func (p *Parser) nextTokensMatchAny(tokenType ...token.TokenType) bool {
 	for _, token := range tokenType {
-		if p.check(token) {
+		if p.currentTokenMatches(token) {
 			p.advance()
 			return true
 		}
@@ -218,7 +218,7 @@ func (p *Parser) match(tokenType ...token.TokenType) bool {
 	return false
 }
 
-func (p *Parser) check(tokenType token.TokenType) bool {
+func (p *Parser) currentTokenMatches(tokenType token.TokenType) bool {
 	if p.isAtEnd() {
 		return false
 	}

@@ -77,7 +77,7 @@ func runPrompt() {
 func run(script string) {
 	scanner := scanner.New(script)
 	tokens := scanner.ScanTokens()
-	parser := parser.NewParser(&tokens)
+	parser := parser.New(tokens)
 	stmts, err := parser.Parse()
 
 	if err != nil {

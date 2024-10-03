@@ -55,7 +55,7 @@ const (
 	EOF
 )
 
-var tokenNames = map[TokenType]string{
+var TokenNames = map[TokenType]string{
 	LEFT_PAREN:    "LEFT_PAREN",
 	RIGHT_PAREN:   "RIGHT_PAREN",
 	LEFT_BRACE:    "LEFT_BRACE",
@@ -105,7 +105,7 @@ type Token struct {
 }
 
 func (t Token) String() string {
-	tokenName := tokenNames[t.TokenType]
+	tokenName := TokenNames[t.TokenType]
 	return fmt.Sprintf("Token{ TokenType: %s, Lexeme: %s, Literal: %v, Line: %d }", tokenName, t.Lexeme, t.Literal, t.Line)
 }
 

@@ -217,10 +217,11 @@ func (s *Scanner) getRuneAndAdvance() rune {
 }
 
 func (s *Scanner) addToken(tokenType token.TokenType) {
-	s.addTokenLiteral(tokenType, nil)
+	literal := s.Source[s.Start:s.Current]
+	s.addTokenLiteral(tokenType, literal)
 }
 
-func (s *Scanner) addTokenLiteral(tokenType token.TokenType, literal any) {
+func (s *Scanner) addTokenLiteral(tokenType token.TokenType, literal interface{}) {
 	text := s.Source[s.Start:s.Current]
 	s.Tokens = append(s.Tokens, token.Token{TokenType: tokenType, Lexeme: text, Literal: literal, Line: s.Line})
 }
